@@ -1,5 +1,5 @@
 #!/bin/sh
-source .env
+source "$(pwd)/.env"
 CERT_NAME=$(jq -r 'to_entries[] | select(.value.user_deletable == true and (.value.services[]? | .display_name_i18n == "common:web_desktop")) | .key' /usr/syno/etc/certificate/_archive/INFO)
 
 if [ -z "$HOST_NAME" ]; then
@@ -21,7 +21,7 @@ if [ ! -f "conf/live/$HOST_NAME/privkey.pem" ]; then
 fi
 
 if ! cmp -s "conf/live/$HOST_NAME/privkey.pem" "/usr/syno/etc/certificate/_archive/$CERT_NAME/privkey.pem"; then
-    # # Copy certificate
+    # Copy certificate
     echo "New certbot certificate found... Copying to /usr/syno/etc/certificate/_archive/$CERT_NAME/"
     cp conf/live/$HOST_NAME/* /usr/syno/etc/certificate/_archive/$CERT_NAME/
 
