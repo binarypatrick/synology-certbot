@@ -1,5 +1,5 @@
 #!/bin/sh
-source "$(pwd)/.env"
+HOST_NAME=
 CERT_NAME=$(jq -r 'to_entries[] | select(.value.user_deletable == true and (.value.services[]? | .display_name_i18n == "common:web_desktop")) | .key' /usr/syno/etc/certificate/_archive/INFO)
 
 if [ -z "$HOST_NAME" ]; then
@@ -13,7 +13,22 @@ if [ -z "$CERT_NAME" ]; then
 fi
 
 echo "Certificate for $CERT_NAME found... Running certbot"
-docker compose up
+docker run --rm \
+  --name certbot-dns \
+  --dns 1.1.1.1 \
+  --dns 1.0.0.1 \
+  -e HOST_NAME="$HOST_NAME" \
+  -v ./cloudflare.ini:/cloudflare.ini:ro \
+  -v ./conf:/etc/letsencrypt \
+  -v ./logs:/var/log/letsencrypt \
+  certbot/dns-cloudflare:latest \
+  certonly -d "$HOST_NAME" \
+  --dns-cloudflare \
+  --dns-cloudflare-credentials /cloudflare.ini \
+  --dns-cloudflare-propagation-seconds 30 \
+  --email "admin@$HOST_NAME" \
+  --agree-tos \
+  --non-interactive
 
 if [ ! -f "conf/live/$HOST_NAME/privkey.pem" ]; then
     echo "Error: No certbot certificate found in ./conf/live/$HOST_NAME/ to update $CERT_NAME"
